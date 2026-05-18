@@ -5,6 +5,9 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -12,14 +15,20 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Fetch stats NosDéputés.fr
-        run: node scripts/fetch-stats.mjs
-      - name: Commit & push
+
+      - name: 📥 Fetch stats NosDéputés.fr
+        run: |
+          mkdir -p data
+          node scripts/fetch-stats.mjs
+
+      - name: 💾 Commit si changements
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/stats.json
-          git diff --staged --quiet || git commit -m "🔄 Stats — $(date +'%d/%m/%Y')" && git push
+          if ! git diff --staged --quiet; then
+            git commit -m "🔄 Stats — $(date +'%d/%m/%Y')"
+            git push
+          else
+            echo "Aucun changement."
+          fi
