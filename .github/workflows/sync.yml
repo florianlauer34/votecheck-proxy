@@ -5,9 +5,6 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -16,10 +13,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 📥 Fetch stats NosDéputés.fr
+      - name: 📥 Fetch et sauvegarde stats
         run: |
           mkdir -p data
-          node scripts/fetch-stats.mjs
+          node --input-type=module << 'EOF'
+          import fs from 'fs';
+
+          const SLUGS = ['marine-le-pen','gabriel-attal','edouard-philippe','jean-luc-melenchon','eric-ciotti','sandrine-rousseau'];
+          const IDS   = ['mlp','ga','ep','jlm','ec','sr'];
+
+          const results = {};
+          for (let i = 0; i < SLUGS.length; i++) {
+            const slug = SLUGS[i];
+            const id   = IDS[i];
+            console.log('Fetching ' + slug + '...');
+            try {
+              const [rP, rV] = await Promise.allSettled([
+                fetch('https://www.nosdeputes.fr/' + slug + '/json',        { headers:{'User-Agent':'Mozilla/5.0'}, signal: AbortSignal.timeout(12000) }),
+                fetch('https://www.nosdeputes.fr/' + slug + '/votes/json',  { headers:{'User-Agent':'Mozilla/5.0'}, signal: AbortSignal.timeout(12000) }),
+              ]);
+              let profil = null;
+              if (rP.status === 'fulfilled' && rP.value.ok) {
+                const { depute: d } = await rP.value.json();
+                const t = d?.top || {};
+                profil = { semaines_presence: t.semaines_presence??null, interventions: t.hemicycle_interventions??null, amendements_proposes: t.amendements_proposes??null, questions_ecrites: t.questions_ecrites??null, groupe: d?.groupe_sigle??null, ancien: !!d?.ancien_depute };
+                console.log('  profil OK - ' + profil.groupe);
+              } else { console.log('  profil KO'); }
+              let votes = [];
+              if (rV.status === 'fulfilled' && rV.value.ok) {
+                const data = await rV.value.json();
+                votes = (data.votes||[]).slice(0,10).map(v => ({ titre: v.scrutin?.titre||v.titre||'—', date: v.scrutin?.date||v.date||'', position: v.position||'absent' }));
+                console.log('  ' + votes.length + ' votes OK');
+              } else { console.log('  votes KO'); }
+              results[id] = { profil, votes, fetched_at: new Date().toISOString() };
+            } catch(e) {
+              console.error('  ERREUR: ' + e.message);
+              results[id] = { profil: null, votes: [], error: e.message };
+            }
+          }
+
+          fs.writeFileSync('data/stats.json', JSON.stringify({ last_sync: new Date().toISOString(), candidates: results }, null, 2));
+          console.log('stats.json sauvegarde !');
+          EOF
 
       - name: 💾 Commit si changements
         run: |
@@ -30,5 +65,5 @@ jobs:
             git commit -m "🔄 Stats — $(date +'%d/%m/%Y')"
             git push
           else
-            echo "Aucun changement."
+            echo "Rien a commiter."
           fi
