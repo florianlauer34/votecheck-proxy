@@ -17,40 +17,40 @@ jobs:
         run: |
           mkdir -p data
           node --input-type=module << 'EOF'
-import fs from 'fs';
-
-const SLUGS = ['marine-le-pen','gabriel-attal','edouard-philippe','jean-luc-melenchon','eric-ciotti','sandrine-rousseau'];
-const IDS   = ['mlp','ga','ep','jlm','ec','sr'];
-
-const results = {};
-for (let i = 0; i < SLUGS.length; i++) {
-  const slug = SLUGS[i], id = IDS[i];
-  console.log('Fetching ' + slug + '...');
-  try {
-    const r = await fetch('https://www.nosdeputes.fr/' + slug + '/json', {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: AbortSignal.timeout(12000),
-    });
-    console.log('  HTTP STATUS: ' + r.status);
-    const text = await r.text();
-    console.log('  RESPONSE (100 chars): ' + text.slice(0, 100));
-    if (r.ok) {
-      const { depute: d } = JSON.parse(text);
-      const t = d?.top || {};
-      results[id] = {
-        profil: { semaines_presence: t.semaines_presence??null, interventions: t.hemicycle_interventions??null, amendements_proposes: t.amendements_proposes??null, questions_ecrites: t.questions_ecrites??null, groupe: d?.groupe_sigle??null, ancien: !!d?.ancien_depute },
-        votes: [],
-        fetched_at: new Date().toISOString()
-      };
-      console.log('  OK - groupe: ' + results[id].profil.groupe);
-    } else {
-      results[id] = { profil: null, votes: [], error: 'HTTP ' + r.status };
-    }
-  } catch(e) {
-    console.error('  ERREUR: ' + e.message);
-    results[id] = { profil: null, votes: [], error: e.message };
-  }
-}
+            import fs from 'fs';
+            
+            const SLUGS = ['marine-le-pen','gabriel-attal','edouard-philippe','jean-luc-melenchon','eric-ciotti','sandrine-rousseau'];
+            const IDS   = ['mlp','ga','ep','jlm','ec','sr'];
+            
+            const results = {};
+            for (let i = 0; i < SLUGS.length; i++) {
+              const slug = SLUGS[i], id = IDS[i];
+              console.log('Fetching ' + slug + '...');
+              try {
+                const r = await fetch('https://www.nosdeputes.fr/' + slug + '/json', {
+                  headers: { 'User-Agent': 'Mozilla/5.0' },
+                  signal: AbortSignal.timeout(12000),
+                });
+                console.log('  HTTP STATUS: ' + r.status);
+                const text = await r.text();
+                console.log('  RESPONSE (100 chars): ' + text.slice(0, 100));
+                if (r.ok) {
+                  const { depute: d } = JSON.parse(text);
+                  const t = d?.top || {};
+                  results[id] = {
+                    profil: { semaines_presence: t.semaines_presence??null, interventions: t.hemicycle_interventions??null, amendements_proposes: t.amendements_proposes??null, questions_ecrites: t.questions_ecrites??null, groupe: d?.groupe_sigle??null, ancien: !!d?.ancien_depute },
+                    votes: [],
+                    fetched_at: new Date().toISOString()
+                  };
+                  console.log('  OK - groupe: ' + results[id].profil.groupe);
+                } else {
+                  results[id] = { profil: null, votes: [], error: 'HTTP ' + r.status };
+                }
+              } catch(e) {
+                console.error('  ERREUR: ' + e.message);
+                results[id] = { profil: null, votes: [], error: e.message };
+              }
+            }
 
 fs.mkdirSync('data', { recursive: true });
 fs.writeFileSync('data/stats.json', JSON.stringify({ last_sync: new Date().toISOString(), candidates: results }, null, 2));
