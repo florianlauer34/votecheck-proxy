@@ -1,0 +1,35 @@
+{
+  "last_sync": "2026-05-18T09:37:23.625Z",
+  "candidates": {
+    "mlp": {
+      "profil": null,
+      "votes": [],
+      "fetched_at": "2026-05-18T09:36:31.068Z"
+    },
+    "ga": {
+      "profil": null,
+      "votes": [],
+      "fetched_at": "2026-05-18T09:36:41.647Z"
+    },
+    "ep": {
+      "profil": null,
+      "votes": [],
+      "fetched_at": "2026-05-18T09:36:52.142Z"
+    },
+    "jlm": {
+      "profil": null,
+      "votes": [],
+      "fetched_at": "2026-05-18T09:37:02.636Z"
+    },
+    "ec": {
+      "profil": null,
+      "votes": [],
+      "fetched_at": "2026-05-18T09:37:13.132Z"
+    },
+    "sr": {
+      "profil": null,
+      "votes": [],
+      "fetched_at": "2026-05-18T09:37:23.625Z"
+    }
+  }
+}
